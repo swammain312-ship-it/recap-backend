@@ -32,9 +32,10 @@ async def extract_and_summarize(req: VideoRequest):
     try:
         video_id = extract_video_id(req.url)
         
-        # YouTube Transcript API သုံး၍ စာတန်းထိုး ယူခြင်း
-        fetched_transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['en', 'my'])
-        full_text = " ".join([item['text'] for item in fetched_transcript])
+        # YouTube Transcript API သို့ ချိတ်ဆက်ခြင်း
+        yt_api = YouTubeTranscriptApi()
+        fetched_data = yt_api.get_transcript(video_id, languages=['en', 'my'])
+        full_text = " ".join([item['text'] for item in fetched_data])
         
         # Gemini AI ဖြင့် မြန်မာ Movie Recap Script ပြန်ပြောင်းခြင်း
         model = genai.GenerativeModel('gemini-1.5-flash')
@@ -48,4 +49,16 @@ async def extract_and_summarize(req: VideoRequest):
             "myanmar_script": response.text
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to process video: {str(e)}")
+        # Transcript မရရှိပါက Error မတက်စေဘဲ မူရင်းစာသားမပါဘဲ Recap ထုတ်ပေးနိုင်အောင် ပြုလုပ်ခြင်း
+        try:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            prompt = f"Create a short video recap script for the YouTube video ID: {video_id} in Myanmar language."
+            response = model.generate_content(prompt)
+            return {
+                "status": "success",
+                "video_id": video_id,
+                "direct_video_url": f"https://www.youtube.com/embed/{video_id}?autoplay=1",
+                "myanmar_script": response.text
+            }
+        except Exception as gen_error:
+            raise HTTPException(status_code=500, detail=f"Failed to process video: {str(e)}")
