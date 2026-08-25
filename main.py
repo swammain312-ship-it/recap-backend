@@ -32,11 +32,11 @@ async def extract_and_summarize(req: VideoRequest):
     try:
         video_id = extract_video_id(req.url)
         
-        # YouTube Transcript ဆွဲယူခြင်း
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['en', 'my'])
-        full_text = " ".join([item['text'] for item in transcript_list])
+        # YouTube Transcript API သုံး၍ စာတန်းထိုး ယူခြင်း
+        fetched_transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['en', 'my'])
+        full_text = " ".join([item['text'] for item in fetched_transcript])
         
-        # Gemini AI ဖြင့် မြန်မာ Movie Recap Script ဖန်တီးခြင်း
+        # Gemini AI ဖြင့် မြန်မာ Movie Recap Script ပြန်ပြောင်းခြင်း
         model = genai.GenerativeModel('gemini-1.5-flash')
         prompt = f"Summarize this video transcript into an engaging Myanmar voiceover recap script. Keep it concise, dramatic, and naturally spoken in Myanmar language:\n\n{full_text}"
         response = model.generate_content(prompt)
@@ -49,4 +49,3 @@ async def extract_and_summarize(req: VideoRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to process video: {str(e)}")
-
